@@ -1,0 +1,182 @@
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Main Profile Card matching GiaoDienProfile.png */
+.profile-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem 3rem;
+  box-shadow: var(--shadow-card);
+}
+
+.profile-header-area {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-avatar-circle {
+  width: 95px;
+  height: 95px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--accent-cyan);
+  background: rgba(14, 165, 233, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px var(--accent-cyan-glow);
+}
+
+.avatar-text {
+  font-size: 0.825rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+}
+
+.profile-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-display-name {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.profile-class-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(20, 184, 166, 0.12);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  width: fit-content;
+}
+
+.profile-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin-bottom: 2rem;
+}
+
+/* Form Grid */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem 2.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-label {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.field-input {
+  width: 100%;
+  padding: 0.85rem 1.15rem;
+  background-color: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.field-input.readonly {
+  background-color: #09101d;
+  color: #e2e8f0;
+  border-color: #152238;
+  cursor: default;
+}
+
+.field-input:not(.readonly):focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px var(--accent-cyan-glow);
+  background-color: #0e172a;
+}
+
+.text-cyan-link {
+  color: var(--accent-cyan) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.link-ext-icon {
+  position: absolute;
+  right: 1rem;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.link-ext-icon:hover {
+  color: var(--accent-cyan);
+}
+
+/* Actions Row matching GiaoDienProfile.png */
+.profile-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.25rem;
+}
+
+.save-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--status-success);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.edit-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.edit-profile-btn {
+  padding: 0.75rem 2rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 768px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}

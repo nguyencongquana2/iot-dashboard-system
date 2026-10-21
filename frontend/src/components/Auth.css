@@ -1,0 +1,110 @@
+.auth-container {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #060911;
+  /* Radial subtle glow in background matching the mockup image */
+  background-image: 
+    radial-gradient(circle at 30% 35%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 75% 65%, rgba(20, 184, 166, 0.06) 0%, transparent 40%);
+  padding: 2rem 1.5rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 3rem 2.5rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--accent-cyan);
+  background: rgba(14, 165, 233, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0 20px var(--accent-cyan-glow);
+}
+
+.auth-brand-icon {
+  color: var(--accent-cyan);
+}
+
+.auth-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.35rem;
+}
+
+.auth-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  padding: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-top: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-switch-text {
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.auth-switch-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-weight: 600;
+  font-size: 0.825rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.auth-switch-btn:hover {
+  text-decoration: underline;
+  color: #38bdf8;
+}
+
+.auth-error-msg {
+  width: 100%;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.825rem;
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+

@@ -1,0 +1,144 @@
+.page-size-selector-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  user-select: none;
+  position: relative;
+}
+
+.page-size-label-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.page-size-dropdown-box {
+  position: relative;
+  display: inline-block;
+}
+
+.page-size-trigger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  min-width: 66px;
+  padding: 0.35rem 0.65rem;
+  background-color: var(--bg-card-secondary, #0c1626);
+  border: 1px solid rgba(20, 184, 166, 0.45);
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.page-size-trigger-btn:hover,
+.page-size-trigger-btn.active {
+  border-color: var(--accent-cyan, #14b8a6);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25);
+  background-color: rgba(15, 23, 42, 0.95);
+}
+
+.page-size-trigger-val {
+  color: #ffffff;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+}
+
+.page-size-chevron {
+  color: var(--text-secondary, #94a3b8);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.page-size-chevron.rotate-180 {
+  transform: rotate(180deg);
+  color: var(--accent-cyan, #14b8a6);
+}
+
+/* Floating Popup Menu matching screenshot */
+.page-size-menu-popup {
+  position: absolute;
+  left: 0;
+  min-width: 72px;
+  width: 100%;
+  background: rgba(21, 29, 44, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px -4px rgba(0, 0, 0, 0.7), 0 4px 10px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-size-menu-popup.open-down {
+  top: calc(100% + 6px);
+}
+
+.page-size-menu-popup.open-up {
+  bottom: calc(100% + 6px);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.page-size-option-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 10px;
+  color: #cbd5e1;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.page-size-option-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+/* Selected Active Option: Vivid Blue Pill with White Checkmark */
+.page-size-option-item.selected {
+  background-color: #1976d2;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.45);
+}
+
+.page-size-option-item.selected:hover {
+  background-color: #1565c0;
+}
+
+.option-check-icon {
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.option-number {
+  line-height: 1;
+}

@@ -1,0 +1,142 @@
+.actionhistory-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Filter Card matching GiaoDienActionHistory.png */
+.action-filter-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.filter-item-box {
+  position: relative;
+  flex: 1;
+  min-width: 140px;
+}
+
+.time-box {
+  min-width: 200px;
+}
+
+.filter-input-action {
+  width: 100%;
+  padding: 0.72rem 1rem;
+  background-color: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.filter-input-action:focus {
+  border-color: var(--accent-cyan);
+}
+
+.filter-select-action {
+  width: 100%;
+  appearance: none;
+  padding: 0.72rem 2.2rem 0.72rem 1rem;
+  background-color: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-select-action:focus {
+  border-color: var(--accent-cyan);
+}
+
+.td-device {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.td-user {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.text-action-on {
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.text-action-off {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+/* Status Pills */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+.pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+}
+
+.pill-success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.pill-success .pill-dot {
+  background-color: #34d399;
+  box-shadow: 0 0 6px #34d399;
+}
+
+.pill-failed {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.pill-failed .pill-dot {
+  background-color: #f87171;
+  box-shadow: 0 0 6px #f87171;
+}
+
+.pill-loading {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.pill-loading .pill-dot {
+  background-color: #fbbf24;
+  box-shadow: 0 0 6px #fbbf24;
+}
+
+.table-footer-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
