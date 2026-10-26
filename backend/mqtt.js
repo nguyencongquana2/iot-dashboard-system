@@ -39,10 +39,13 @@ let latestSensors = {
 };
 
 let mqttClient = null;
+let lastEspHeartbeat = 0; // Thời điểm gần nhất nhận được tín hiệu từ ESP32
+let pendingAckWaiters = []; // Danh sách các Promise đang đợi phản hồi ACK từ ESP32
 
 // ============================================================================
 // PHẦN 3: KHỞI TẠO KẾT NỐI & XỬ LÝ TIN NHẮN TỪ ESP32 (initMQTT)
 // - Lắng nghe topic data_sensor -> Parse JSON -> Lưu vào bảng data_sensor (SQL Server).
+// - Lắng nghe topic status -> Phản hồi ACK cho lệnh điều khiển.
 // ============================================================================
 export function initMQTT() {
   console.log(`🔌 Đang kết nối tới MQTT Broker tại: ${brokerUrl}...`);
@@ -67,6 +70,7 @@ export function initMQTT() {
 
     // 3.1. Nhận gói tin cảm biến từ ESP32 và ghi vào SQL Server
     if (topic === TOPIC_SENSOR) {
+      lastEspHeartbeat = Date.now();
       try {
         const data = JSON.parse(payloadStr);
         const now = new Date();
@@ -106,7 +110,15 @@ export function initMQTT() {
 
     // 3.2. Nhận gói tin phản hồi (ACK) từ ESP32 khi thực thi xong lệnh bật/tắt
     if (topic === TOPIC_STATUS) {
+      lastEspHeartbeat = Date.now();
       console.log(`📩 [ESP32 ACK -> ${TOPIC_STATUS}]:`, payloadStr);
+
+      // Phản hồi cho các lệnh đang chờ ACK từ topic status
+      if (pendingAckWaiters.length > 0) {
+        const currentWaiters = [...pendingAckWaiters];
+        pendingAckWaiters = [];
+        currentWaiters.forEach((waiter) => waiter.resolve(payloadStr));
+      }
     }
   });
 
@@ -124,24 +136,44 @@ export function initMQTT() {
 // ============================================================================
 // PHẦN 4: HÀM GỬI LỆNH ĐIỀU KHIỂN XUỐNG ESP32 (sendDeviceCommand)
 // - Publish chuỗi lệnh (ví dụ: 'LED1_ON', 'LED2_OFF', 'ALL_ON') vào topic 'control_devices'.
+// - BẮT BUỘC ĐỢI ESP32 phản hồi gói tin ACK qua topic 'status' trong thời gian timeoutMs (mặc định 2500ms).
+// - Nếu ESP32 bị tháo / mất nguồn / mất mạng -> Không nhận được ACK -> Reject lỗi!
 // ============================================================================
-export function sendDeviceCommand(command) {
-  if (!mqttClient || !mqttClient.connected) {
-    console.warn(`⚠️ Cảnh báo: MQTT Broker chưa kết nối, lệnh [${command}] vẫn được gửi khi có mạng.`);
-  }
-
+export function sendDeviceCommand(command, { timeoutMs = 2500 } = {}) {
   return new Promise((resolve, reject) => {
-    if (!mqttClient) {
-      return reject(new Error('MQTT Client chưa được khởi tạo'));
+    if (!mqttClient || !mqttClient.connected) {
+      return reject(new Error('MQTT Broker chưa kết nối!'));
     }
+
+    let timer = null;
+    const waiter = {
+      resolve: (ackPayload) => {
+        if (timer) clearTimeout(timer);
+        resolve(ackPayload);
+      },
+      reject: (err) => {
+        if (timer) clearTimeout(timer);
+        reject(err);
+      }
+    };
+
+    // Đặt timeout chờ ACK từ ESP32
+    timer = setTimeout(() => {
+      pendingAckWaiters = pendingAckWaiters.filter((w) => w !== waiter);
+      reject(new Error(`ESP32 không phản hồi lệnh [${command}] sau ${timeoutMs}ms (Mạch ESP32 đã bị tháo hoặc mất kết nối)!`));
+    }, timeoutMs);
+
+    pendingAckWaiters.push(waiter);
 
     console.log(`📤 [Backend -> ${TOPIC_CONTROL}]: Publish lệnh -> ${command}`);
     mqttClient.publish(TOPIC_CONTROL, command, { qos: 1 }, (err) => {
       if (err) {
+        if (timer) clearTimeout(timer);
+        pendingAckWaiters = pendingAckWaiters.filter((w) => w !== waiter);
         console.error(`❌ Gửi lệnh [${command}] thất bại:`, err);
         return reject(err);
       }
-      resolve(true);
+      console.log(`⏳ Đang đợi ESP32 phản hồi ACK trên topic [${TOPIC_STATUS}] (tối đa ${timeoutMs}ms)...`);
     });
   });
 }

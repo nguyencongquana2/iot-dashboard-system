@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink, Save, Check, Edit3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Profile.css';
@@ -7,16 +7,32 @@ export const Profile = () => {
   const { user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: user?.fullName || 'Nguyen Van A',
-    class: user?.class || 'D23CQ',
-    studentId: user?.studentId || 'B123456',
-    email: user?.email || 'example@gmail.com',
-    github: user?.github || 'https://github.com/nva',
-    figma: user?.figma || 'https://figma.com/@nva',
-    postman: user?.postman || 'https://postman.com/nva',
-    pdf: user?.pdf || 'https://pdf.com/nva'
+    fullName: user?.fullName || 'Nguyen Cong Quan',
+    class: user?.class || 'D21CQCN01-B',
+    studentId: user?.studentId || 'B21DCCN000',
+    email: user?.email || 'nguyencongquan@iot.local',
+    github: user?.github || 'https://github.com/nguyencongquan',
+    figma: user?.figma || '',
+    postman: user?.postman || '',
+    pdf: user?.pdf || ''
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Tự động đồng bộ form khi dữ liệu user từ Backend được tải về
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        fullName: user.fullName || user.username || 'Nguyen Cong Quan',
+        class: user.class || 'D21CQCN01-B',
+        studentId: user.studentId || 'B21DCCN000',
+        email: user.email || 'nguyencongquan@iot.local',
+        github: user.github || 'https://github.com/nguyencongquan',
+        figma: user.figma || '',
+        postman: user.postman || '',
+        pdf: user.pdf || ''
+      });
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

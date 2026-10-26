@@ -8,7 +8,9 @@ import {
   Loader2,
   Sparkles,
   Zap,
-  Power
+  Power,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -66,7 +68,9 @@ export const Dashboard = () => {
     chartData,
     toggleDevice,
     toggleAll,
-    randomLed
+    randomLed,
+    actionError,
+    setActionError
   } = useIoT();
 
   const allAreOn = devices.length > 0 && devices.every((d) => d.state === 'ON');
@@ -237,11 +241,32 @@ export const Dashboard = () => {
 
       {/* Device Controls matching GiaoDienDashboard.png & code_ESP32 */}
       <div className="devices-section">
+        {/* Error notification banner if ESP32 fails to respond */}
+        {actionError && (
+          <div className="dashboard-alert-banner">
+            <div className="alert-content">
+              <AlertTriangle size={18} className="alert-icon" />
+              <span>{actionError}</span>
+            </div>
+            <button
+              type="button"
+              className="alert-close-btn"
+              onClick={() => setActionError('')}
+              title="Đóng thông báo"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
         <div className="devices-grid">
           {devices.map((device) => {
             const isOn = device.state === 'ON';
             return (
-              <div key={device.id} className={`device-card ${isOn ? 'device-on' : 'device-off'}`}>
+              <div
+                key={device.id}
+                className={`device-card ${isOn ? 'device-on' : 'device-off'} ${device.loading ? 'card-loading' : ''}`}
+              >
                 <div className="device-info-col">
                   <div className={`device-icon-box ${isOn ? 'icon-box-on' : 'icon-box-off'}`}>
                     {isOn ? (
@@ -252,9 +277,31 @@ export const Dashboard = () => {
                   </div>
                   <div className="device-meta">
                     <span className="device-name">{device.name}</span>
-                    <div className={`device-badge ${isOn ? 'badge-on' : 'badge-off'}`}>
-                      <span className={`badge-dot ${isOn ? 'dot-pulse' : ''}`} />
-                      <span>{isOn ? 'ĐANG BẬT' : 'ĐÃ TẮT'}</span>
+                    <div
+                      className={`device-badge ${
+                        device.loading
+                          ? 'badge-loading'
+                          : isOn
+                          ? 'badge-on'
+                          : 'badge-off'
+                      }`}
+                    >
+                      <span
+                        className={`badge-dot ${
+                          device.loading
+                            ? 'dot-loading'
+                            : isOn
+                            ? 'dot-pulse'
+                            : ''
+                        }`}
+                      />
+                      <span>
+                        {device.loading
+                          ? 'ĐANG GỬI...'
+                          : isOn
+                          ? 'ĐANG BẬT'
+                          : 'ĐÃ TẮT'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -264,7 +311,7 @@ export const Dashboard = () => {
                     type="button"
                     role="switch"
                     aria-checked={isOn}
-                    className={`device-toggle-btn ${isOn ? 'toggle-on' : 'toggle-off'}`}
+                    className={`device-toggle-btn ${isOn ? 'toggle-on' : 'toggle-off'} ${device.loading ? 'is-loading' : ''}`}
                     onClick={() => toggleDevice(device.id)}
                     disabled={device.loading}
                     title={isOn ? `Click để tắt ${device.name}` : `Click để bật ${device.name}`}
@@ -272,7 +319,7 @@ export const Dashboard = () => {
                     {device.loading ? (
                       <span className="toggle-loading">
                         <Loader2 size={13} className="animate-spin" />
-                        <span>Đang gửi...</span>
+                        <span>Đang xử lý...</span>
                       </span>
                     ) : (
                       <>
@@ -302,7 +349,7 @@ export const Dashboard = () => {
               disabled={allAreOn || isAnyLoading}
               title={allAreOn ? 'Tất cả đèn đã bật' : 'Bật tất cả đèn (ALL_ON)'}
             >
-              <Power size={14} className="text-cyan" />
+              {isAnyLoading ? <Loader2 size={14} className="animate-spin text-cyan" /> : <Power size={14} className="text-cyan" />}
               <span>Bật tất cả (ALL_ON)</span>
             </button>
             <button
@@ -311,7 +358,7 @@ export const Dashboard = () => {
               disabled={allAreOff || isAnyLoading}
               title={allAreOff ? 'Tất cả đèn đã tắt' : 'Tắt tất cả đèn (ALL_OFF)'}
             >
-              <Power size={14} className="text-danger" />
+              {isAnyLoading ? <Loader2 size={14} className="animate-spin text-danger" /> : <Power size={14} className="text-danger" />}
               <span>Tắt tất cả (ALL_OFF)</span>
             </button>
             <button
@@ -320,7 +367,7 @@ export const Dashboard = () => {
               disabled={isAnyLoading}
               title="Bật ngẫu nhiên 1 đèn"
             >
-              <Sparkles size={14} className="text-warning" />
+              {isAnyLoading ? <Loader2 size={14} className="animate-spin text-warning" /> : <Sparkles size={14} className="text-warning" />}
               <span>Bật ngẫu nhiên 1 đèn (RANDOM_ON)</span>
             </button>
           </div>

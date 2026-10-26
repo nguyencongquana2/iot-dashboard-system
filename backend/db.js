@@ -83,12 +83,27 @@ async function initDefaultData() {
       console.log('📌 Đã khởi tạo danh mục thiết bị mẫu (1: LED 1, 2: LED 2, 3: LED 3).');
     }
 
-    // 3.3. Tài khoản người dùng mặc định (users)
+    // 3.3. Tự động kiểm tra và mở rộng các cột hồ sơ Profile nếu chưa có
+    await pool.request().query(`
+      IF COL_LENGTH('users', 'fullName') IS NULL
+      BEGIN
+        ALTER TABLE users ADD 
+          fullName NVARCHAR(100) DEFAULT 'Nguyen Cong Quan',
+          class NVARCHAR(50) DEFAULT 'D21CQCN01-B',
+          studentId VARCHAR(50) DEFAULT 'B21DCCN000',
+          github NVARCHAR(255) DEFAULT 'https://github.com/nguyencongquan',
+          figma NVARCHAR(255) DEFAULT '',
+          postman NVARCHAR(255) DEFAULT '',
+          pdf NVARCHAR(255) DEFAULT '';
+      END
+    `);
+
+    // 3.4. Tài khoản người dùng mặc định (users)
     const userCheck = await pool.request().query('SELECT COUNT(*) as count FROM users');
     if (userCheck.recordset[0].count === 0) {
       await pool.request().query(`
-        INSERT INTO users (username, password, email) 
-        VALUES ('nguyencongquan', '123456', 'nguyencongquan@iot.local');
+        INSERT INTO users (username, password, email, fullName, class, studentId, github) 
+        VALUES ('nguyencongquan', '123456', 'nguyencongquan@iot.local', 'Nguyen Cong Quan', 'D21CQCN01-B', 'B21DCCN000', 'https://github.com/nguyencongquan');
       `);
       console.log('📌 Đã khởi tạo tài khoản người dùng mặc định (nguyencongquan).');
     }
@@ -113,5 +128,3 @@ export async function executeQuery(queryText, params = {}) {
   }
   return request.query(queryText);
 }
-
-export { sql };

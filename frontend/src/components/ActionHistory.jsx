@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, Loader2 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { PageSizeSelector } from './PageSizeSelector';
+import { Pagination } from './Pagination';
 import './ActionHistory.css';
 
 export const ActionHistory = () => {
@@ -17,21 +18,27 @@ export const ActionHistory = () => {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async (page = currentPage, size = pageSize) => {
+  const fetchData = async (page = currentPage, size = pageSize, filters = {}) => {
     setLoading(true);
     const validSize = Number(size) > 0 ? Number(size) : 10;
+    const device = filters.device !== undefined ? filters.device : selectedDevice;
+    const action = filters.action !== undefined ? filters.action : selectedAction;
+    const status = filters.status !== undefined ? filters.status : selectedStatus;
+    const queryTime = filters.timeRange !== undefined ? filters.timeRange : timeRange;
+
     try {
       const res = await apiService.getActionHistory({
         page,
         pageSize: validSize,
-        device: selectedDevice,
-        action: selectedAction,
-        status: selectedStatus,
-        timeRange: timeRange
+        device,
+        action,
+        status,
+        timeRange: queryTime,
+        search: queryTime
       });
       if (res && res.data) {
-        setData(res.data.content);
-        setPageInfo(res.data.page_info);
+        setData(res.data.content || []);
+        setPageInfo(res.data.page_info || { current_page: page, total_pages: 1, total_elements: 0, page_size: validSize });
       }
     } catch (err) {
       console.error('Error fetching action history', err);
@@ -48,6 +55,27 @@ export const ActionHistory = () => {
     e.preventDefault();
     setCurrentPage(1);
     fetchData(1, pageSize);
+  };
+
+  const handleDeviceChange = (e) => {
+    const val = e.target.value;
+    setSelectedDevice(val);
+    setCurrentPage(1);
+    fetchData(1, pageSize, { device: val });
+  };
+
+  const handleActionChange = (e) => {
+    const val = e.target.value;
+    setSelectedAction(val);
+    setCurrentPage(1);
+    fetchData(1, pageSize, { action: val });
+  };
+
+  const handleStatusChange = (e) => {
+    const val = e.target.value;
+    setSelectedStatus(val);
+    setCurrentPage(1);
+    fetchData(1, pageSize, { status: val });
   };
 
   const handlePageSizeChange = (newSize) => {
@@ -69,7 +97,7 @@ export const ActionHistory = () => {
           <input
             type="text"
             className="filter-input-action"
-            placeholder="29/09/2025 21:00 - 21:16"
+            placeholder="29/09/2025 21:00 - 21:16 hoặc ngày, giờ, từ khóa..."
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
           />
@@ -80,7 +108,7 @@ export const ActionHistory = () => {
           <select
             className="filter-select-action"
             value={selectedDevice}
-            onChange={(e) => setSelectedDevice(e.target.value)}
+            onChange={handleDeviceChange}
           >
             <option value="ALL">Tất cả thiết bị</option>
             <option value="LED 1">LED 1</option>
@@ -95,7 +123,7 @@ export const ActionHistory = () => {
           <select
             className="filter-select-action"
             value={selectedAction}
-            onChange={(e) => setSelectedAction(e.target.value)}
+            onChange={handleActionChange}
           >
             <option value="ALL">Tất cả hành động</option>
             <option value="ON">ON</option>
@@ -109,7 +137,7 @@ export const ActionHistory = () => {
           <select
             className="filter-select-action"
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
+            onChange={handleStatusChange}
           >
             <option value="ALL">Tất cả trạng thái</option>
             <option value="SUCCESS">SUCCESS</option>
@@ -192,17 +220,11 @@ export const ActionHistory = () => {
               label="Số dòng mỗi trang"
             />
 
-            <div className="pagination-bar">
-              {Array.from({ length: pageInfo.total_pages || 1 }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  className={`page-num ${p === currentPage ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={pageInfo.total_pages || 1}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </div>
       </div>

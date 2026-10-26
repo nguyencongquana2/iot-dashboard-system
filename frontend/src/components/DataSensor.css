@@ -210,40 +210,6 @@
   color: var(--text-muted);
 }
 
-.pagination-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.page-num {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bg-card-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 0.825rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.page-num:hover {
-  border-color: var(--border-light);
-  color: #ffffff;
-}
-
-.page-num.active {
-  background-color: #0b223d;
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
-  box-shadow: 0 0 10px var(--accent-cyan-glow);
-}
-
 .table-footer-controls {
   display: flex;
   align-items: center;

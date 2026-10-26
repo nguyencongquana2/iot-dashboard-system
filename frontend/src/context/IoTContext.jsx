@@ -21,8 +21,17 @@ export const IoTProvider = ({ children }) => {
   const [sensorValues, setSensorValues] = useState(DEFAULT_SENSOR_VALUES);
   const [chartData, setChartData] = useState([]);
   const [isRealtimeActive, setIsRealtimeActive] = useState(true);
+  const [actionError, setActionError] = useState('');
 
   const tickerRef = useRef(null);
+
+  // Tự động ẩn thông báo lỗi sau 6 giây
+  useEffect(() => {
+    if (actionError) {
+      const timer = setTimeout(() => setActionError(''), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionError]);
 
   // Khởi tạo danh sách thiết bị và biểu đồ ban đầu từ Backend
   useEffect(() => {
@@ -95,9 +104,17 @@ export const IoTProvider = ({ children }) => {
     setDevices((prev) =>
       prev.map((d) => (d.id === dv_id ? { ...d, loading: true } : d))
     );
+    setActionError('');
+    const startTime = Date.now();
 
     try {
       await apiService.controlDevice({ dv_id, action });
+
+      // Đảm bảo thời gian loading tối thiểu 500ms để người dùng thấy rõ trạng thái chuyển tiếp
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 500) {
+        await new Promise((r) => setTimeout(r, 500 - elapsed));
+      }
 
       setDevices((prev) =>
         prev.map((d) =>
@@ -113,9 +130,14 @@ export const IoTProvider = ({ children }) => {
       );
     } catch (err) {
       console.error('Lỗi khi điều khiển thiết bị:', err);
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 500) {
+        await new Promise((r) => setTimeout(r, 500 - elapsed));
+      }
       setDevices((prev) =>
         prev.map((d) => (d.id === dv_id ? { ...d, loading: false } : d))
       );
+      setActionError(err.message || 'Mạch ESP32 không phản hồi hoặc đã bị ngắt kết nối!');
     }
   };
 
@@ -130,28 +152,56 @@ export const IoTProvider = ({ children }) => {
   // Điều khiển hàng loạt: Bật hoặc Tắt tất cả (dv_id: 'ALL')
   const toggleAll = async (action) => {
     setDevices((prev) => prev.map((d) => ({ ...d, loading: true })));
+    setActionError('');
+    const startTime = Date.now();
+
     try {
       const res = await apiService.controlDevice({ dv_id: 'ALL', action });
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 500) {
+        await new Promise((r) => setTimeout(r, 500 - elapsed));
+      }
+
       if (res && res.data) {
-        setDevices(res.data);
+        setDevices(res.data.map((d) => ({ ...d, loading: false })));
       }
     } catch (err) {
       console.error('Lỗi khi điều khiển tất cả thiết bị:', err);
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 500) {
+        await new Promise((r) => setTimeout(r, 500 - elapsed));
+      }
       setDevices((prev) => prev.map((d) => ({ ...d, loading: false })));
+      setActionError(err.message || 'Mạch ESP32 không phản hồi hoặc đã bị ngắt kết nối!');
     }
   };
 
   // Điều khiển ngẫu nhiên: Bật ngẫu nhiên 1 đèn (dv_id: 'RANDOM')
   const randomLed = async () => {
     setDevices((prev) => prev.map((d) => ({ ...d, loading: true })));
+    setActionError('');
+    const startTime = Date.now();
+
     try {
       const res = await apiService.controlDevice({ dv_id: 'RANDOM', action: 'ON' });
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 500) {
+        await new Promise((r) => setTimeout(r, 500 - elapsed));
+      }
+
       if (res && res.data) {
-        setDevices(res.data);
+        setDevices(res.data.map((d) => ({ ...d, loading: false })));
       }
     } catch (err) {
       console.error('Lỗi khi bật ngẫu nhiên thiết bị:', err);
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 500) {
+        await new Promise((r) => setTimeout(r, 500 - elapsed));
+      }
       setDevices((prev) => prev.map((d) => ({ ...d, loading: false })));
+      setActionError(err.message || 'Mạch ESP32 không phản hồi hoặc đã bị ngắt kết nối!');
     }
   };
 
@@ -166,7 +216,9 @@ export const IoTProvider = ({ children }) => {
         toggleDevice,
         controlDevice,
         toggleAll,
-        randomLed
+        randomLed,
+        actionError,
+        setActionError
       }}
     >
       {children}

@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Pagination Component Styles (Sliding Window + Ellipsis)
+   Tuân thủ Vanilla CSS và hệ thống Design Token trong index.css
+   ========================================================================== */
+
+.pagination-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  user-select: none;
+}
+
+.page-numbers-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Nút số trang */
+.page-num {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-family: var(--font-mono, inherit);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-num:hover:not(.active) {
+  border-color: var(--border-light);
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.page-num.active {
+  background-color: rgba(14, 165, 233, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 12px var(--accent-cyan-glow);
+  font-weight: 700;
+  cursor: default;
+}
+
+/* Nút điều hướng (First, Prev, Next, Last) */
+.page-nav-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-nav-btn:hover:not(:disabled) {
+  border-color: var(--border-light);
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.page-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+/* Ký hiệu ba chấm (...) */
+.page-ellipsis {
+  min-width: 24px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+
+/* Responsive tinh chỉnh cho màn hình nhỏ */
+@media (max-width: 640px) {
+  .page-nav-first,
+  .page-nav-last {
+    display: none;
+  }
+
+  .page-num,
+  .page-nav-btn {
+    min-width: 30px;
+    height: 30px;
+    font-size: 0.775rem;
+  }
+}

@@ -33,7 +33,6 @@ initMQTT();
 
 // ============================================================================
 // PHẦN 2: API DỮ LIỆU CẢM BIẾN (SENSORS)
-// - Thầy hỏi: "API nào cung cấp dữ liệu cho Dashboard và Bảng lịch sử cảm biến?"
 // ============================================================================
 
 // 2.1. Lấy thông số cảm biến mới nhất (Dashboard 3 Cards)
@@ -81,6 +80,107 @@ app.get('/api/datasensor/chart', async (req, res) => {
   }
 });
 
+// Helper phân tích khoảng thời gian (VD: "29/09/2025 21:00 - 21:16", "2026-10-26 03:00 - 04:00", "03:00 - 03:30")
+function parseDateRange(rangeStr) {
+  if (!rangeStr || !rangeStr.includes(' - ')) return null;
+  const parts = rangeStr.split(' - ').map((s) => s.trim());
+  if (parts.length !== 2) return null;
+
+  const [startStr, endStr] = parts;
+
+  const normalizeStartDateTime = (str) => {
+    const timeOnlyMatch = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (timeOnlyMatch) return null; // Sẽ xử lý ở time_only
+
+    const dmyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (dmyMatch) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const month = dmyMatch[2].padStart(2, '0');
+      const year = dmyMatch[3];
+      const h = (dmyMatch[4] || '00').padStart(2, '0');
+      const m = dmyMatch[5] || '00';
+      const s = dmyMatch[6] || '00';
+      return `${year}-${month}-${day} ${h}:${m}:${s}`;
+    }
+
+    const ymdMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (ymdMatch) {
+      const year = ymdMatch[1];
+      const month = ymdMatch[2].padStart(2, '0');
+      const day = ymdMatch[3].padStart(2, '0');
+      const h = (ymdMatch[4] || '00').padStart(2, '0');
+      const m = ymdMatch[5] || '00';
+      const s = ymdMatch[6] || '00';
+      return `${year}-${month}-${day} ${h}:${m}:${s}`;
+    }
+
+    return null;
+  };
+
+  const normalizeEndDateTime = (str, fallbackDate = null) => {
+    const timeOnlyMatch = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (timeOnlyMatch) {
+      const h = timeOnlyMatch[1].padStart(2, '0');
+      const m = timeOnlyMatch[2];
+      const s = timeOnlyMatch[3] || '59';
+      if (fallbackDate) {
+        return `${fallbackDate} ${h}:${m}:${s}`;
+      }
+      return null;
+    }
+
+    const dmyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (dmyMatch) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const month = dmyMatch[2].padStart(2, '0');
+      const year = dmyMatch[3];
+      const h = (dmyMatch[4] || '23').padStart(2, '0');
+      const m = dmyMatch[5] || (dmyMatch[4] ? '00' : '59');
+      const s = dmyMatch[6] || '59';
+      return `${year}-${month}-${day} ${h}:${m}:${s}`;
+    }
+
+    const ymdMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (ymdMatch) {
+      const year = ymdMatch[1];
+      const month = ymdMatch[2].padStart(2, '0');
+      const day = ymdMatch[3].padStart(2, '0');
+      const h = (ymdMatch[4] || '23').padStart(2, '0');
+      const m = ymdMatch[5] || (ymdMatch[4] ? '00' : '59');
+      const s = ymdMatch[6] || '59';
+      return `${year}-${month}-${day} ${h}:${m}:${s}`;
+    }
+
+    return null;
+  };
+
+  const dmyStart = startStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  const ymdStart = startStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  let baseDate = null;
+  if (dmyStart) {
+    baseDate = `${dmyStart[3]}-${dmyStart[2].padStart(2, '0')}-${dmyStart[1].padStart(2, '0')}`;
+  } else if (ymdStart) {
+    baseDate = `${ymdStart[1]}-${ymdStart[2].padStart(2, '0')}-${ymdStart[3].padStart(2, '0')}`;
+  }
+
+  const startNormalized = normalizeStartDateTime(startStr);
+  const endNormalized = normalizeEndDateTime(endStr, baseDate);
+
+  const timeOnly1 = startStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  const timeOnly2 = endStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!startNormalized && timeOnly1 && timeOnly2) {
+    const t1 = `${timeOnly1[1].padStart(2, '0')}:${timeOnly1[2]}:${timeOnly1[3] || '00'}`;
+    const t2 = `${timeOnly2[1].padStart(2, '0')}:${timeOnly2[2]}:${timeOnly2[3] || '59'}`;
+    return { type: 'time_only', startTime: t1, endTime: t2 };
+  }
+
+  if (startNormalized && endNormalized) {
+    return { type: 'datetime', start: startNormalized, end: endNormalized };
+  }
+
+  return null;
+}
+
 // 2.3. Lấy danh sách lịch sử cảm biến (Phân trang + Tìm kiếm theo loại/giá trị)
 app.get('/api/datasensor/history', async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
@@ -92,14 +192,35 @@ app.get('/api/datasensor/history', async (req, res) => {
     let whereClause = 'WHERE 1=1';
     const params = {};
 
-    if (sensorType !== 'ALL') {
+    if (sensorType !== 'ALL' && sensorType !== 'Time') {
       whereClause += ' AND s.name = @sensorType';
       params.sensorType = sensorType;
     }
 
     if (search) {
-      whereClause += ' AND (CAST(ds.value AS VARCHAR) LIKE @search OR CONVERT(VARCHAR, ds.time, 120) LIKE @search)';
-      params.search = `%${search}%`;
+      const range = parseDateRange(search);
+      if (range) {
+        if (range.type === 'datetime') {
+          whereClause += ' AND ds.time >= @start AND ds.time <= @end';
+          params.start = range.start;
+          params.end = range.end;
+        } else if (range.type === 'time_only') {
+          whereClause += ' AND CONVERT(VARCHAR(8), ds.time, 108) BETWEEN @startTime AND @endTime';
+          params.startTime = range.startTime;
+          params.endTime = range.endTime;
+        }
+      } else {
+        if (sensorType === 'Time') {
+          whereClause += ' AND (CONVERT(VARCHAR, ds.time, 120) LIKE @search OR CONVERT(VARCHAR, ds.time, 103) LIKE @search OR CONVERT(VARCHAR, ds.time, 108) LIKE @search)';
+          params.search = `%${search}%`;
+        } else if (sensorType === 'ALL') {
+          whereClause += ' AND (s.name LIKE @search OR CAST(ds.value AS VARCHAR) LIKE @search OR CONVERT(VARCHAR, ds.time, 120) LIKE @search OR CONVERT(VARCHAR, ds.time, 103) LIKE @search OR CONVERT(VARCHAR, ds.time, 108) LIKE @search)';
+          params.search = `%${search}%`;
+        } else {
+          whereClause += ' AND (CAST(ds.value AS VARCHAR) LIKE @search OR CONVERT(VARCHAR, ds.time, 120) LIKE @search OR CONVERT(VARCHAR, ds.time, 103) LIKE @search OR CONVERT(VARCHAR, ds.time, 108) LIKE @search)';
+          params.search = `%${search}%`;
+        }
+      }
     }
 
     // Đếm tổng số bản ghi
@@ -240,6 +361,26 @@ app.post('/api/action', async (req, res) => {
       data: updatedDevice
     });
   } catch (err) {
+    // Tự động ghi lại lịch sử thao tác thất bại (FAILED) vào CSDL
+    try {
+      if (dv_id === 'ALL') {
+        await executeQuery(`
+          INSERT INTO action_history (user_id, dv_id, action, status, time) VALUES 
+            (@userId, 1, @action, 'FAILED', @time),
+            (@userId, 2, @action, 'FAILED', @time),
+            (@userId, 3, @action, 'FAILED', @time)
+        `, { userId, action: action || 'UNKNOWN', time: now });
+      } else {
+        const targetId = parseInt(dv_id, 10) || 1;
+        await executeQuery(`
+          INSERT INTO action_history (user_id, dv_id, action, status, time)
+          VALUES (@userId, @dvId, @action, 'FAILED', @time)
+        `, { userId, dvId: targetId, action: action || 'UNKNOWN', time: now });
+      }
+    } catch (saveErr) {
+      console.warn('⚠️ Lỗi khi lưu action_history (FAILED):', saveErr.message);
+    }
+
     res.status(500).json({ status: 'error', message: err.message });
   }
 });
@@ -251,6 +392,7 @@ app.get('/api/action/history', async (req, res) => {
   const device = req.query.device || 'ALL';
   const action = req.query.action || 'ALL';
   const status = req.query.status || 'ALL';
+  const search = (req.query.search || req.query.timeRange || '').trim();
 
   try {
     let whereClause = 'WHERE 1=1';
@@ -269,10 +411,37 @@ app.get('/api/action/history', async (req, res) => {
       params.status = status;
     }
 
+    if (search) {
+      const range = parseDateRange(search);
+      if (range) {
+        if (range.type === 'datetime') {
+          whereClause += ' AND ah.time >= @start AND ah.time <= @end';
+          params.start = range.start;
+          params.end = range.end;
+        } else if (range.type === 'time_only') {
+          whereClause += ' AND CONVERT(VARCHAR(8), ah.time, 108) BETWEEN @startTime AND @endTime';
+          params.startTime = range.startTime;
+          params.endTime = range.endTime;
+        }
+      } else {
+        whereClause += ` AND (
+          CONVERT(VARCHAR, ah.time, 120) LIKE @search
+          OR CONVERT(VARCHAR, ah.time, 103) LIKE @search
+          OR CONVERT(VARCHAR, ah.time, 108) LIKE @search
+          OR d.name LIKE @search
+          OR ah.action LIKE @search
+          OR ah.status LIKE @search
+          OR COALESCE(u.username, 'admin') LIKE @search
+        )`;
+        params.search = `%${search}%`;
+      }
+    }
+
     const countResult = await executeQuery(`
       SELECT COUNT(*) as total 
       FROM action_history ah
       JOIN devices d ON ah.dv_id = d.id
+      LEFT JOIN users u ON ah.user_id = u.id
       ${whereClause}
     `, params);
 
@@ -366,10 +535,13 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// 4.3. Xem thông tin cá nhân
+// 4.3. Xem thông tin cá nhân (Profile)
 app.get('/api/auth/profile', async (req, res) => {
   try {
-    const result = await executeQuery('SELECT TOP 1 id, username, email FROM users');
+    const result = await executeQuery(`
+      SELECT TOP 1 id, username, email, fullName, class, studentId, github, figma, postman, pdf 
+      FROM users
+    `);
     const user = result.recordset[0] || {};
     res.json({
       status: 'success',
@@ -379,6 +551,57 @@ app.get('/api/auth/profile', async (req, res) => {
       }
     });
   } catch (err) {
+    try {
+      const fallback = await executeQuery('SELECT TOP 1 id, username, email FROM users');
+      const user = fallback.recordset[0] || {};
+      res.json({ status: 'success', data: { ...user, isLoggedIn: true } });
+    } catch {
+      res.status(500).json({ status: 'error', message: err.message });
+    }
+  }
+});
+
+// 4.4. Cập nhật thông tin cá nhân (Profile) vào CSDL SQL Server
+app.put('/api/auth/profile', async (req, res) => {
+  const { fullName, class: className, studentId, email, github, figma, postman, pdf } = req.body;
+  try {
+    await executeQuery(`
+      UPDATE users SET 
+        fullName = COALESCE(@fullName, fullName),
+        class = COALESCE(@class, class),
+        studentId = COALESCE(@studentId, studentId),
+        email = COALESCE(@email, email),
+        github = COALESCE(@github, github),
+        figma = COALESCE(@figma, figma),
+        postman = COALESCE(@postman, postman),
+        pdf = COALESCE(@pdf, pdf)
+      WHERE id = (SELECT TOP 1 id FROM users)
+    `, {
+      fullName: fullName || null,
+      class: className || null,
+      studentId: studentId || null,
+      email: email || null,
+      github: github || null,
+      figma: figma || null,
+      postman: postman || null,
+      pdf: pdf || null
+    });
+
+    const updatedResult = await executeQuery(`
+      SELECT TOP 1 id, username, email, fullName, class, studentId, github, figma, postman, pdf 
+      FROM users
+    `);
+
+    res.json({
+      status: 'success',
+      message: 'Cập nhật thông tin cá nhân thành công',
+      data: {
+        ...(updatedResult.recordset[0] || {}),
+        isLoggedIn: true
+      }
+    });
+  } catch (err) {
+    console.error('Lỗi khi cập nhật profile:', err.message);
     res.status(500).json({ status: 'error', message: err.message });
   }
 });

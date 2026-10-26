@@ -7,6 +7,13 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL,
+    fullName NVARCHAR(100) DEFAULT 'Nguyen Cong Quan',
+    class NVARCHAR(50) DEFAULT 'D21CQCN01-B',
+    studentId VARCHAR(50) DEFAULT 'B21DCCN000',
+    github NVARCHAR(255) DEFAULT 'https://github.com/nguyencongquan',
+    figma NVARCHAR(255) DEFAULT '',
+    postman NVARCHAR(255) DEFAULT '',
+    pdf NVARCHAR(255) DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

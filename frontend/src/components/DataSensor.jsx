@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, Loader2 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { PageSizeSelector } from './PageSizeSelector';
+import { Pagination } from './Pagination';
 import './DataSensor.css';
 
 export const DataSensor = () => {
@@ -13,15 +14,17 @@ export const DataSensor = () => {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async (page = currentPage, size = pageSize) => {
+  const fetchData = async (page = currentPage, size = pageSize, filters = {}) => {
     setLoading(true);
     const validSize = Number(size) > 0 ? Number(size) : 10;
+    const type = filters.sensorType !== undefined ? filters.sensorType : sensorType;
+    const search = filters.search !== undefined ? filters.search : searchQuery;
     try {
       const res = await apiService.getSensorHistory({
         page,
         pageSize: validSize,
-        search: searchQuery,
-        sensorType: sensorType
+        search,
+        sensorType: type
       });
       if (res && res.data) {
         setData(res.data.content);
@@ -52,6 +55,8 @@ export const DataSensor = () => {
   const handleSensorTypeChange = (e) => {
     const nextType = e.target.value;
     setSensorType(nextType);
+    setCurrentPage(1);
+    fetchData(1, pageSize, { sensorType: nextType });
   };
 
   return (
@@ -159,17 +164,11 @@ export const DataSensor = () => {
               label="Số dòng mỗi trang"
             />
 
-            <div className="pagination-bar">
-              {Array.from({ length: pageInfo.total_pages || 1 }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  className={`page-num ${p === currentPage ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={pageInfo.total_pages || 1}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </div>
       </div>

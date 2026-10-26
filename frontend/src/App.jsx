@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { IoTProvider } from './context/IoTContext';
 import { Sidebar } from './components/Sidebar';
@@ -10,10 +10,48 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import './App.css';
 
+const VALID_TABS = ['dashboard', 'data-sensor', 'action-history', 'profile'];
+
+const getInitialTab = () => {
+  const hash = window.location.hash.replace(/^#\/?/, '');
+  if (VALID_TABS.includes(hash)) {
+    return hash;
+  }
+  try {
+    const saved = localStorage.getItem('iot_active_tab');
+    if (saved && VALID_TABS.includes(saved)) {
+      return saved;
+    }
+  } catch {}
+  return 'dashboard';
+};
+
 const MainAppContent = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTabState] = useState(getInitialTab);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem('iot_active_tab', tab);
+    } catch {}
+    window.location.hash = tab;
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      if (VALID_TABS.includes(hash)) {
+        setActiveTabState(hash);
+        try {
+          localStorage.setItem('iot_active_tab', hash);
+        } catch {}
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   if (loading) {
     return (
