@@ -277,14 +277,49 @@ app.get('/api/devices', (req, res) => {
   res.json(deviceStates);
 });
 
-// 3.2. Gửi lệnh điều khiển (Bật/Tắt LED) -> Bắn MQTT -> Ghi lịch sử vào SQL Server
+// 3.2. Gửi lệnh điều khiển (Bật/Tắt LED) -> Lưu LOADING -> Bắn MQTT -> Cập nhật SUCCESS / FAILED
 app.post('/api/action', async (req, res) => {
   const { dv_id, action } = req.body;
   const now = new Date();
   const userId = 1;
+  let insertedIds = [];
 
   try {
-    // Trường hợp A: BẬT/TẮT TẤT CẢ (ALL_ON / ALL_OFF)
+    // GIAI ĐOẠN 1: TẠO BẢN GHI TRẠNG THÁI 'LOADING' TRƯỚC KHI BẮN LỆNH
+    try {
+      if (dv_id === 'ALL') {
+        const insertRes = await executeQuery(`
+          INSERT INTO action_history (user_id, dv_id, action, status, time)
+          OUTPUT INSERTED.id
+          VALUES 
+            (@userId, 1, @action, 'LOADING', @time),
+            (@userId, 2, @action, 'LOADING', @time),
+            (@userId, 3, @action, 'LOADING', @time)
+        `, { userId, action, time: now });
+        insertedIds = insertRes.recordset.map((r) => r.id);
+      } else if (dv_id === 'RANDOM') {
+        const randomId = Math.floor(Math.random() * 3) + 1;
+        req.selectedRandomId = randomId;
+        const insertRes = await executeQuery(`
+          INSERT INTO action_history (user_id, dv_id, action, status, time)
+          OUTPUT INSERTED.id
+          VALUES (@userId, @dvId, 'ON', 'LOADING', @time)
+        `, { userId, dvId: randomId, time: now });
+        insertedIds = insertRes.recordset.map((r) => r.id);
+      } else {
+        const targetId = parseInt(dv_id, 10);
+        const insertRes = await executeQuery(`
+          INSERT INTO action_history (user_id, dv_id, action, status, time)
+          OUTPUT INSERTED.id
+          VALUES (@userId, @dvId, @action, 'LOADING', @time)
+        `, { userId, dvId: targetId, action, time: now });
+        insertedIds = insertRes.recordset.map((r) => r.id);
+      }
+    } catch (insertErr) {
+      console.warn('⚠️ Lỗi khi khởi tạo bản ghi action_history (LOADING):', insertErr.message);
+    }
+
+    // GIAI ĐOẠN 2: BẮN LỆNH MQTT XUỐNG ESP32 VÀ CHỜ PHẢN HỒI ACK
     if (dv_id === 'ALL') {
       const mqttCommand = action === 'ON' ? 'ALL_ON' : 'ALL_OFF';
       await sendDeviceCommand(mqttCommand);
@@ -294,91 +329,70 @@ app.post('/api/action', async (req, res) => {
         state: action,
         status: action === 'ON' ? 'ACTIVE_ON' : 'STDBY_OFF'
       }));
-
-      // INSERT 3 dòng riêng biệt vào bảng action_history cho LED 1, 2, 3
-      try {
-        await executeQuery(`
-          INSERT INTO action_history (user_id, dv_id, action, status, time) VALUES 
-            (@userId, 1, @action, 'SUCCESS', @time),
-            (@userId, 2, @action, 'SUCCESS', @time),
-            (@userId, 3, @action, 'SUCCESS', @time)
-        `, { userId, action, time: now });
-      } catch (dbErr) {
-        console.warn('⚠️ Lỗi khi lưu action_history (ALL):', dbErr.message);
-      }
-
-      return res.json({ status: 'success', data: deviceStates });
-    }
-
-    // Trường hợp B: BẬT NGẪU NHIÊN 1 ĐÈN (RANDOM_ON)
-    if (dv_id === 'RANDOM') {
+    } else if (dv_id === 'RANDOM') {
       await sendDeviceCommand('RANDOM_ON');
-      const randomId = Math.floor(Math.random() * 3) + 1;
+      const randomId = req.selectedRandomId || (Math.floor(Math.random() * 3) + 1);
 
       deviceStates = deviceStates.map((d) => ({
         ...d,
         state: d.id === randomId ? 'ON' : 'OFF',
         status: d.id === randomId ? 'ACTIVE_ON' : 'STDBY_OFF'
       }));
+    } else {
+      const targetId = parseInt(dv_id, 10);
+      const mqttCommand = `LED${targetId}_${action}`;
+      await sendDeviceCommand(mqttCommand);
 
+      deviceStates = deviceStates.map((d) =>
+        d.id === targetId
+          ? { ...d, state: action, status: action === 'ON' ? 'ACTIVE_ON' : 'STDBY_OFF' }
+          : d
+      );
+    }
+
+    // GIAI ĐOẠN 3: KHI NHẬN ACK THÀNH CÔNG -> CẬP NHẬT TRẠNG THÁI BẢN GHI ĐÓ THÀNH 'SUCCESS'
+    if (insertedIds.length > 0) {
       try {
+        const idListStr = insertedIds.join(',');
         await executeQuery(`
-          INSERT INTO action_history (user_id, dv_id, action, status, time)
-          VALUES (@userId, @dvId, 'ON', 'SUCCESS', @time)
-        `, { userId, dvId: randomId, time: now });
-      } catch (dbErr) {
-        console.warn('⚠️ Lỗi khi lưu action_history (RANDOM):', dbErr.message);
+          UPDATE action_history 
+          SET status = 'SUCCESS' 
+          WHERE id IN (${idListStr})
+        `);
+      } catch (updateErr) {
+        console.warn('⚠️ Lỗi khi cập nhật status SUCCESS:', updateErr.message);
       }
-
-      return res.json({ status: 'success', data: deviceStates });
     }
 
-    // Trường hợp C: ĐIỀU KHIỂN TỪNG LED ĐƠN LẺ (dv_id: 1, 2, 3)
-    const targetId = parseInt(dv_id, 10);
-    const mqttCommand = `LED${targetId}_${action}`; // Tạo chuỗi lệnh: LED1_ON, LED2_OFF...
-    await sendDeviceCommand(mqttCommand);
+    const updatedDevice = dv_id !== 'ALL' && dv_id !== 'RANDOM'
+      ? deviceStates.find((d) => d.id === parseInt(dv_id, 10))
+      : deviceStates;
 
-    deviceStates = deviceStates.map((d) =>
-      d.id === targetId
-        ? { ...d, state: action, status: action === 'ON' ? 'ACTIVE_ON' : 'STDBY_OFF' }
-        : d
-    );
-
-    // Lưu 1 bản ghi vào CSDL
-    try {
-      await executeQuery(`
-        INSERT INTO action_history (user_id, dv_id, action, status, time)
-        VALUES (@userId, @dvId, @action, 'SUCCESS', @time)
-      `, { userId, dvId: targetId, action, time: now });
-    } catch (dbErr) {
-      console.warn('⚠️ Lỗi khi lưu action_history:', dbErr.message);
-    }
-
-    const updatedDevice = deviceStates.find((d) => d.id === targetId);
-    res.json({
+    return res.json({
       status: 'success',
-      message: `Đã ${action === 'ON' ? 'bật' : 'tắt'} ${updatedDevice?.name} thành công`,
+      message: `Đã ${action === 'ON' ? 'bật' : 'tắt'} thiết bị thành công`,
       data: updatedDevice
     });
   } catch (err) {
-    // Tự động ghi lại lịch sử thao tác thất bại (FAILED) vào CSDL
+    // GIAI ĐOẠN 4: KHI GẶP LỖI (TIMEOUT ACK HOẶC MẤT KẾT NỐI BROKER) -> CẬP NHẬT THÀNH 'FAILED'
     try {
-      if (dv_id === 'ALL') {
+      if (insertedIds.length > 0) {
+        const idListStr = insertedIds.join(',');
         await executeQuery(`
-          INSERT INTO action_history (user_id, dv_id, action, status, time) VALUES 
-            (@userId, 1, @action, 'FAILED', @time),
-            (@userId, 2, @action, 'FAILED', @time),
-            (@userId, 3, @action, 'FAILED', @time)
-        `, { userId, action: action || 'UNKNOWN', time: now });
+          UPDATE action_history 
+          SET status = 'FAILED' 
+          WHERE id IN (${idListStr})
+        `);
       } else {
-        const targetId = parseInt(dv_id, 10) || 1;
+        // Dự phòng nếu chưa kịp insert ở bước 1
+        const targetId = dv_id === 'ALL' ? 1 : (parseInt(dv_id, 10) || 1);
         await executeQuery(`
           INSERT INTO action_history (user_id, dv_id, action, status, time)
           VALUES (@userId, @dvId, @action, 'FAILED', @time)
         `, { userId, dvId: targetId, action: action || 'UNKNOWN', time: now });
       }
     } catch (saveErr) {
-      console.warn('⚠️ Lỗi khi lưu action_history (FAILED):', saveErr.message);
+      console.warn('⚠️ Lỗi khi cập nhật action_history (FAILED):', saveErr.message);
     }
 
     res.status(500).json({ status: 'error', message: err.message });

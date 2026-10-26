@@ -278,6 +278,7 @@ sequenceDiagram
     User->>Front: Gạt công tắc Bật Đèn 1 (LED 1 ON)
     Front->>Front: Bật trạng thái Loading của nút bấm
     Front->>Back: POST /api/action {"dv_id": 1, "action": "ON"}
+    Back->>DB: INSERT vào action_history (dv_id 1, action 'ON', status 'LOADING')
     Back->>Broker: Publish "LED1_ON" lên topic "control_devices"
     Broker->>ESP: Chuyển tiếp lệnh điều khiển
     ESP->>ESP: Xuất mức HIGH ra GPIO 18 (Đèn sáng)
@@ -285,12 +286,12 @@ sequenceDiagram
         ESP->>Broker: Publish "LED1_ON_OK" lên topic "status"
         Broker->>Back: Nhận gói ACK từ ESP32
         Back->>Back: Cập nhật trạng thái deviceStates trong RAM
-        Back->>DB: INSERT vào action_history (dv_id 1, action 'ON', status 'SUCCESS')
+        Back->>DB: UPDATE action_history SET status = 'SUCCESS' WHERE id = @id
         Back-->>Front: HTTP 200 OK {"status": "success", "data": {...}}
         Front->>Front: Tắt Loading, đổi trạng thái công tắc sang ON
         Front->>User: Đèn sáng thực tế và giao diện Web đồng bộ trạng thái
     else Quá timeout 2.5s hoặc mất kết nối MQTT Broker
-        Back->>DB: INSERT vào action_history (dv_id 1, action 'ON', status 'FAILED')
+        Back->>DB: UPDATE action_history SET status = 'FAILED' WHERE id = @id
         Back-->>Front: HTTP 500 Error {"status": "error", "message": "..."}
         Front->>Front: Tắt Loading, giữ nguyên trạng thái cũ
         Front->>User: Hiển thị thanh cảnh báo lỗi màu đỏ trên giao diện

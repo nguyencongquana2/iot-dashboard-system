@@ -18,8 +18,8 @@ export const ActionHistory = () => {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async (page = currentPage, size = pageSize, filters = {}) => {
-    setLoading(true);
+  const fetchData = async (page = currentPage, size = pageSize, filters = {}, isSilent = false) => {
+    if (!isSilent) setLoading(true);
     const validSize = Number(size) > 0 ? Number(size) : 10;
     const device = filters.device !== undefined ? filters.device : selectedDevice;
     const action = filters.action !== undefined ? filters.action : selectedAction;
@@ -43,13 +43,25 @@ export const ActionHistory = () => {
     } catch (err) {
       console.error('Error fetching action history', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData(currentPage, pageSize);
-  }, [currentPage, pageSize]);
+
+    // Tự động làm mới dữ liệu ngầm sau mỗi 2.5s khi ở trang 1 để cập nhật ngay từ LOADING -> SUCCESS / FAILED
+    let pollTimer = null;
+    if (currentPage === 1) {
+      pollTimer = setInterval(() => {
+        fetchData(1, pageSize, {}, true);
+      }, 2500);
+    }
+
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [currentPage, pageSize, selectedDevice, selectedAction, selectedStatus, timeRange]);
 
   const handleFilterSubmit = (e) => {
     e.preventDefault();
